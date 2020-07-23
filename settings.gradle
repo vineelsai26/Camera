@@ -1,2 +1,2 @@
-rootProject.name='CameraX'
+rootProject.name='Camera'
 include ':app'

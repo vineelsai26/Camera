@@ -1,4 +1,4 @@
-package com.vs.camerax
+package com.vs.camera
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

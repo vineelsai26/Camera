@@ -1,4 +1,4 @@
-package com.vs.camerax
+package com.vs.camera
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -6,11 +6,11 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
@@ -20,7 +20,7 @@ import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-typealias LumaListener = (luma: Double) -> Unit
+typealias LuminosityListener = (luminosity: Double) -> Unit
 
 class MainActivity : AppCompatActivity() {
     private var preview: Preview? = null
@@ -31,13 +31,15 @@ class MainActivity : AppCompatActivity() {
         CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
     private lateinit var outputDirectory: File
     private lateinit var cameraExecutor: ExecutorService
+    private lateinit var container: ConstraintLayout
 
     @SuppressLint("RestrictedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        container = findViewById(R.id.layout)
 
-        camera_rotate_button.setOnClickListener {
+        cameraRotationButton.setOnClickListener {
             cameraSelector = if (cameraSelector.lensFacing == CameraSelector.LENS_FACING_BACK) {
                 CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_FRONT)
                     .build()
@@ -56,7 +58,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        camera_capture_button.setOnClickListener { takePhoto() }
+        cameraCaptureButton.setOnClickListener { takePhoto() }
 
         outputDirectory = getOutputDirectory()
 
@@ -80,8 +82,10 @@ class MainActivity : AppCompatActivity() {
             imageAnalyzer = ImageAnalysis.Builder()
                 .build()
                 .also {
-                    it.setAnalyzer(cameraExecutor, LuminosityAnalyzer { luma ->
-                        Log.d(Tag, "Average luminosity: $luma")
+                    it.setAnalyzer(cameraExecutor, LuminosityAnalyzer { luminosity ->
+                        runOnUiThread {
+                            lum.text = luminosity.toInt().toString()
+                        }
                     })
                 }
 
@@ -91,7 +95,7 @@ class MainActivity : AppCompatActivity() {
                 camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageCapture, imageAnalyzer
                 )
-                preview?.setSurfaceProvider(viewFinder.createSurfaceProvider(camera?.cameraInfo))
+                preview?.setSurfaceProvider(viewFinder.createSurfaceProvider())
             } catch (exc: Exception) {
                 Log.e(Tag, "Use case binding failed", exc)
             }

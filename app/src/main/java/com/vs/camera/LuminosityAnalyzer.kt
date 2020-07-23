@@ -1,10 +1,10 @@
-package com.vs.camerax
+package com.vs.camera
 
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import java.nio.ByteBuffer
 
-class LuminosityAnalyzer(private val listener: LumaListener) : ImageAnalysis.Analyzer {
+class LuminosityAnalyzer(private val listener: LuminosityListener) : ImageAnalysis.Analyzer {
 
     private fun ByteBuffer.toByteArray(): ByteArray {
         rewind()
@@ -18,9 +18,9 @@ class LuminosityAnalyzer(private val listener: LumaListener) : ImageAnalysis.Ana
         val buffer = image.planes[0].buffer
         val data = buffer.toByteArray()
         val pixels = data.map { it.toInt() and 0xFF }
-        val luma = pixels.average()
+        val luminosity = pixels.average()
 
-        listener(luma)
+        listener(luminosity)
 
         image.close()
     }
