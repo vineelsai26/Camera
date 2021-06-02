@@ -28,7 +28,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@drawable/ic_photo_camera" />
+        app:srcCompat="@drawable/ic_photo_camera"
+        android:contentDescription="@string/capture" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/cameraRotationButton"
@@ -41,17 +42,35 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/cameraCaptureButton"
         app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@drawable/ic_flip" />
+        app:srcCompat="@drawable/ic_flip"
+        android:contentDescription="@string/rotate" />
 
-    <TextView
-        android:id="@+id/lum"
+    <ImageButton
+        android:id="@+id/flash"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="10dp"
-        android:padding="5dp"
-        android:textColor="@android:color/white"
+        android:layout_margin="10dp"
+        android:src="@drawable/ic_flash_on"
+        android:background="@android:color/transparent"
+        app:layout_constraintBottom_toTopOf="@+id/cameraCaptureButton"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        android:contentDescription="@string/flash" />
+
+    <LinearLayout
+        android:layout_width="130dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="20dp"
+        app:layout_constraintTop_toTopOf="parent">
+        <TextView
+            android:id="@+id/lum"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="10dp"
+            android:padding="5dp"
+            android:textColor="@android:color/white" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -4,16 +4,17 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import kotlinx.android.synthetic.main.activity_main.*
+import com.vs.camera.databinding.ActivityMainBinding
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -31,15 +32,17 @@ class MainActivity : AppCompatActivity() {
         CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
     private lateinit var outputDirectory: File
     private lateinit var cameraExecutor: ExecutorService
-    private lateinit var container: ConstraintLayout
+    private lateinit var binding: ActivityMainBinding
 
     @SuppressLint("RestrictedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        container = findViewById(R.id.layout)
+        hideStatusBar()
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
 
-        cameraRotationButton.setOnClickListener {
+        binding.cameraRotationButton.setOnClickListener {
             cameraSelector = if (cameraSelector.lensFacing == CameraSelector.LENS_FACING_BACK) {
                 CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_FRONT)
                     .build()
@@ -50,6 +53,16 @@ class MainActivity : AppCompatActivity() {
             startCamera()
         }
 
+        binding.flash.setOnClickListener {
+            if (camera?.cameraInfo?.torchState?.value == TorchState.ON) {
+                camera?.cameraControl?.enableTorch(false)
+                binding.flash.setImageResource(R.drawable.ic_flash_on)
+            } else {
+                camera?.cameraControl?.enableTorch(true)
+                binding.flash.setImageResource(R.drawable.ic_flash_off)
+            }
+        }
+
         if (allPermissionsGranted()) {
             startCamera()
         } else {
@@ -58,19 +71,26 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        cameraCaptureButton.setOnClickListener { takePhoto() }
+        binding.cameraCaptureButton.setOnClickListener { takePhoto() }
 
         outputDirectory = getOutputDirectory()
 
         cameraExecutor = Executors.newSingleThreadExecutor()
+    }
 
+    private fun hideStatusBar() {
+        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
     }
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
-        cameraProviderFuture.addListener(Runnable {
+        cameraProviderFuture.addListener({
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
             preview = Preview.Builder()
@@ -83,23 +103,22 @@ class MainActivity : AppCompatActivity() {
                 .build()
                 .also {
                     it.setAnalyzer(cameraExecutor, LuminosityAnalyzer { luminosity ->
+                        val luminosityCounter = "Luminosity : ${luminosity.toInt()}"
                         runOnUiThread {
-                            lum.text = luminosity.toInt().toString()
+                            binding.lum.text = luminosityCounter
                         }
                     })
                 }
 
             try {
                 cameraProvider.unbindAll()
-
                 camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageCapture, imageAnalyzer
                 )
-                preview?.setSurfaceProvider(viewFinder.createSurfaceProvider())
+                preview?.setSurfaceProvider(binding.viewFinder.surfaceProvider)
             } catch (exc: Exception) {
                 Log.e(Tag, "Use case binding failed", exc)
             }
-
         }, ContextCompat.getMainExecutor(this))
     }
 
@@ -150,6 +169,7 @@ class MainActivity : AppCompatActivity() {
         requestCode: Int, permissions: Array<String>, grantResults:
         IntArray
     ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (allPermissionsGranted()) {
                 startCamera()
