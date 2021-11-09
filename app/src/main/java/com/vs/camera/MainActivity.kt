@@ -7,6 +7,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -20,13 +22,13 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-
-typealias LuminosityListener = (luminosity: Double) -> Unit
+import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
-    private var imageAnalyzer: ImageAnalysis? = null
+    private var videoCapture: VideoCapture? = null
+    private var isVideoCapture: Boolean = false
     private var camera: Camera? = null
     private var cameraSelector =
         CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
@@ -73,6 +75,18 @@ class MainActivity : AppCompatActivity() {
 
         binding.cameraCaptureButton.setOnClickListener { takePhoto() }
 
+        binding.videoCaptureButton.setOnClickListener {
+            isVideoCapture = if (isVideoCapture) {
+                stopVideo()
+                binding.videoCaptureButton.setImageResource(R.drawable.ic_video_cam)
+                false
+            } else {
+                takeVideo()
+                binding.videoCaptureButton.setImageResource(R.drawable.ic_stop)
+                true
+            }
+        }
+
         outputDirectory = getOutputDirectory()
 
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -96,25 +110,16 @@ class MainActivity : AppCompatActivity() {
             preview = Preview.Builder()
                 .build()
 
-            imageCapture = ImageCapture.Builder()
-                .build()
+            imageCapture = ImageCapture.Builder().build()
 
-            imageAnalyzer = ImageAnalysis.Builder()
-                .build()
-                .also {
-                    it.setAnalyzer(cameraExecutor, LuminosityAnalyzer { luminosity ->
-                        val luminosityCounter = "Luminosity : ${luminosity.toInt()}"
-                        runOnUiThread {
-                            binding.lum.text = luminosityCounter
-                        }
-                    })
-                }
+            videoCapture = VideoCapture.Builder().build()
 
             try {
                 cameraProvider.unbindAll()
                 camera = cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture, imageAnalyzer
+                    this, cameraSelector, preview, imageCapture, videoCapture
                 )
+                setupZoomAndTapToFocus()
                 preview?.setSurfaceProvider(binding.viewFinder.surfaceProvider)
             } catch (exc: Exception) {
                 Log.e(Tag, "Use case binding failed", exc)
@@ -150,6 +155,77 @@ class MainActivity : AppCompatActivity() {
             })
     }
 
+    @SuppressLint("RestrictedApi")
+    private fun takeVideo() {
+        val videoCapture = videoCapture ?: return
+
+        val videoFile = File(
+            outputDirectory,
+            SimpleDateFormat(
+                FILENAME_FORMAT, Locale.US
+            ).format(System.currentTimeMillis()) + ".mp4"
+        )
+
+        val outputOptions = VideoCapture.OutputFileOptions.Builder(videoFile).build()
+
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            videoCapture.startRecording(
+                outputOptions,
+                ContextCompat.getMainExecutor(this),
+                object : VideoCapture.OnVideoSavedCallback {
+                    override fun onError(
+                        videoCaptureError: Int,
+                        message: String,
+                        cause: Throwable?
+                    ) {
+                        Log.e(Tag, "Video capture failed: ${cause!!.message}", cause)
+                    }
+
+                    override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
+                        val savedUri = Uri.fromFile(videoFile)
+                        val msg = "Video capture succeeded: $savedUri"
+                        Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
+                    }
+                })
+        }
+    }
+
+    @SuppressLint("RestrictedApi")
+    private fun stopVideo() {
+        videoCapture?.stopRecording()
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupZoomAndTapToFocus() {
+        val listener = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScale(detector: ScaleGestureDetector): Boolean {
+                val currentZoomRatio: Float = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: 1F
+                val delta = detector.scaleFactor
+                camera?.cameraControl?.setZoomRatio(currentZoomRatio * delta)
+                return true
+            }
+        }
+
+        val scaleGestureDetector = ScaleGestureDetector(this, listener)
+
+        binding.viewFinder.setOnTouchListener { _, event ->
+            scaleGestureDetector.onTouchEvent(event)
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                val factory = binding.viewFinder.meteringPointFactory
+                val point = factory.createPoint(event.x, event.y)
+                val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF)
+                    .setAutoCancelDuration(5, TimeUnit.SECONDS)
+                    .build()
+                camera?.cameraControl?.startFocusAndMetering(action)
+            }
+            true
+        }
+    }
+
     private fun getOutputDirectory(): File {
         val mediaDir = externalMediaDirs.firstOrNull()?.let {
             File(it, resources.getString(R.string.app_name)).apply { mkdirs() }
@@ -162,7 +238,8 @@ class MainActivity : AppCompatActivity() {
         private const val Tag = "CameraX"
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
         private const val REQUEST_CODE_PERMISSIONS = 1
-        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
+        private val REQUIRED_PERMISSIONS =
+            arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
     }
 
     override fun onRequestPermissionsResult(
