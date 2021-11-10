@@ -7,9 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.MotionEvent
-import android.view.ScaleGestureDetector
-import android.view.WindowManager
+import android.view.*
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
@@ -17,6 +15,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.vs.camera.databinding.ActivityMainBinding
+import org.opencv.android.OpenCVLoader
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -36,6 +35,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var binding: ActivityMainBinding
 
+    companion object {
+        private const val Tag = "CameraX"
+        private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
+        private const val REQUEST_CODE_PERMISSIONS = 1
+        private val REQUIRED_PERMISSIONS =
+            arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+    }
+
     @SuppressLint("RestrictedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +50,20 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+
+        if (allPermissionsGranted()) {
+            startCamera()
+        } else {
+            ActivityCompat.requestPermissions(
+                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
+            )
+        }
+
+        if (!OpenCVLoader.initDebug()) {
+            Log.e("OpenCV", "Unable to load OpenCV!")
+        } else {
+            Log.d("OpenCV", "OpenCV loaded Successfully!")
+        }
 
         binding.cameraRotationButton.setOnClickListener {
             cameraSelector = if (cameraSelector.lensFacing == CameraSelector.LENS_FACING_BACK) {
@@ -65,14 +86,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (allPermissionsGranted()) {
-            startCamera()
-        } else {
-            ActivityCompat.requestPermissions(
-                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
-            )
-        }
-
         binding.cameraCaptureButton.setOnClickListener { takePhoto() }
 
         binding.videoCaptureButton.setOnClickListener {
@@ -84,6 +97,22 @@ class MainActivity : AppCompatActivity() {
                 takeVideo()
                 binding.videoCaptureButton.setImageResource(R.drawable.ic_stop)
                 true
+            }
+        }
+
+        binding.viewFinder.afterMeasured {
+            val autoFocusPoint = SurfaceOrientedMeteringPointFactory(1f, 1f)
+                .createPoint(.5f, .5f)
+            try {
+                val autoFocusAction = FocusMeteringAction.Builder(
+                    autoFocusPoint,
+                    FocusMeteringAction.FLAG_AF
+                ).apply {
+                    setAutoCancelDuration(2, TimeUnit.SECONDS)
+                }.build()
+                camera?.cameraControl?.startFocusAndMetering(autoFocusAction)
+            } catch (e: CameraInfoUnavailableException) {
+                Log.d("ERROR", "cannot access camera", e)
             }
         }
 
@@ -226,20 +255,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private inline fun View.afterMeasured(crossinline block: () -> Unit) {
+        viewTreeObserver.addOnGlobalLayoutListener(object :
+            ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                if (measuredWidth > 0 && measuredHeight > 0) {
+                    viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    block()
+                }
+            }
+        })
+    }
+
     private fun getOutputDirectory(): File {
         val mediaDir = externalMediaDirs.firstOrNull()?.let {
             File(it, resources.getString(R.string.app_name)).apply { mkdirs() }
         }
         return if (mediaDir != null && mediaDir.exists())
             mediaDir else filesDir
-    }
-
-    companion object {
-        private const val Tag = "CameraX"
-        private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
-        private const val REQUEST_CODE_PERMISSIONS = 1
-        private val REQUIRED_PERMISSIONS =
-            arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
     }
 
     override fun onRequestPermissionsResult(
