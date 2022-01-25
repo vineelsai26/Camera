@@ -15,7 +15,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.vs.camera.databinding.ActivityMainBinding
-import org.opencv.android.OpenCVLoader
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -57,12 +56,6 @@ class MainActivity : AppCompatActivity() {
             ActivityCompat.requestPermissions(
                 this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
             )
-        }
-
-        if (!OpenCVLoader.initDebug()) {
-            Log.e("OpenCV", "Unable to load OpenCV!")
-        } else {
-            Log.d("OpenCV", "OpenCV loaded Successfully!")
         }
 
         binding.cameraRotationButton.setOnClickListener {
