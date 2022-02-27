@@ -15,72 +15,72 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" >
-    </androidx.camera.view.PreviewView>
+        app:layout_constraintTop_toTopOf="parent" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/cameraCaptureButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="50dp"
-        app:borderWidth="0dp"
         android:backgroundTint="@color/colorPrimaryDark"
         android:clickable="true"
+        android:contentDescription="@string/capture"
         android:focusable="true"
+        app:borderWidth="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@drawable/ic_photo_camera"
-        android:contentDescription="@string/capture" />
+        app:srcCompat="@drawable/ic_photo_camera" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/cameraRotationButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:borderWidth="0dp"
         android:layout_marginBottom="50dp"
         android:backgroundTint="@color/colorPrimaryDark"
         android:clickable="true"
+        android:contentDescription="@string/rotate"
         android:focusable="true"
+        app:borderWidth="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/cameraCaptureButton"
         app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@drawable/ic_flip"
-        android:contentDescription="@string/rotate" />
+        app:srcCompat="@drawable/ic_flip" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/videoCaptureButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:borderWidth="0dp"
         android:layout_marginBottom="50dp"
         android:backgroundTint="@color/colorPrimaryDark"
         android:clickable="true"
+        android:contentDescription="@string/rotate"
         android:focusable="true"
+        app:borderWidth="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/cameraCaptureButton"
-        app:srcCompat="@drawable/ic_video_cam"
-        android:contentDescription="@string/rotate" />
+        app:srcCompat="@drawable/ic_video_cam" />
 
     <ImageButton
         android:id="@+id/flash"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
-        android:src="@drawable/ic_flash_on"
         android:background="@android:color/transparent"
+        android:contentDescription="@string/flash"
+        android:src="@drawable/ic_flash_on"
         app:layout_constraintBottom_toTopOf="@+id/cameraCaptureButton"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        android:contentDescription="@string/flash" />
+        app:layout_constraintStart_toStartOf="parent" />
 
     <LinearLayout
         android:layout_width="130dp"
         android:layout_height="wrap_content"
-        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="20dp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
+
         <TextView
             android:id="@+id/lum"
             android:layout_width="wrap_content"
